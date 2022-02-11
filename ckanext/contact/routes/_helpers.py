@@ -86,6 +86,10 @@ def submit():
     if len(errors) == 0 and recaptcha_error is None:
         body_parts = [
             f'{data_dict["content"]}\n',
+            'Destination:',
+            f'  {data_dict["contact-dest"]}\n',
+            'Routing:',
+            f'  {data_dict["contact-type"]}\n',
             'Sent by:',
             f'  Name: {data_dict["name"]}',
             f'  Email: {data_dict["email"]}'
