@@ -15,3 +15,4 @@ Thumbs.db
 .idea
 .coverage
 .pytest_cache
+.vscode
