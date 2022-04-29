@@ -14,6 +14,11 @@ from ckanext.contact import recaptcha
 from ckanext.contact.interfaces import IContact
 from datetime import datetime, timezone
 
+from flask import render_template
+
+from jinja2 import escape
+
+
 log = logging.getLogger(__name__)
 
 
@@ -96,6 +101,8 @@ def submit():
             f'  Email: {data_dict["email"]}\n'
         ]
 
+
+
         mail_dict = {
             'recipient_email': toolkit.config.get('ckanext.contact.mail_to',
                                                   toolkit.config.get('email_to')),
@@ -103,8 +110,22 @@ def submit():
                                                  toolkit.config.get('ckan.site_title')),
             'subject': build_subject(),
             'body': '\n'.join(body_parts),
+
+            'body_html': render_template(
+                'email/contact.html',
+                name = data_dict['name'],
+                email = data_dict['email'],
+                # pre-escape message so that we can add </br> tags safely in the Jinja2 template
+                message = escape( data_dict['content'] ),
+                timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z'),
+                APP_NAME = "Texas Water Data Hub", 
+                APP_URL= toolkit.url_for( 'home', _external=True ),
+                TITLE = build_subject()
+            ),
+
             'headers': {
-                'reply-to': data_dict['email']
+                'reply-to': data_dict['email'],
+                'cc': 'ben@shoalcrest.net'
             }
         }
 
