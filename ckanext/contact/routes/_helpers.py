@@ -112,7 +112,7 @@ def submit():
             'body': '\n'.join(body_parts),
 
             'body_html': render_template(
-                'email/contact.html',
+                'emails/contact.html',
                 name = data_dict['name'],
                 email = data_dict['email'],
                 # pre-escape message so that we can add </br> tags safely in the Jinja2 template
