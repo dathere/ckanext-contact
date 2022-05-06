@@ -14,6 +14,11 @@ from ckanext.contact import recaptcha
 from ckanext.contact.interfaces import IContact
 from datetime import datetime, timezone
 
+from flask import render_template
+
+from jinja2 import escape
+
+
 log = logging.getLogger(__name__)
 
 
@@ -85,11 +90,19 @@ def submit():
     # if there are not errors and no recaptcha error, attempt to send the email
     if len(errors) == 0 and recaptcha_error is None:
         body_parts = [
+            # f'{data_dict}\n',
             f'{data_dict["content"]}\n',
+            # 'Destination:',
+            # f'  {data_dict["contact-dest"]}\n',
+            # 'Routing:',
+            # f'  {data_dict["contact-type"]}\n',
             'Sent by:',
             f'  Name: {data_dict["name"]}',
-            f'  Email: {data_dict["email"]}'
+            f'  Email: {data_dict["email"]}\n'
         ]
+
+
+
         mail_dict = {
             'recipient_email': toolkit.config.get('ckanext.contact.mail_to',
                                                   toolkit.config.get('email_to')),
@@ -97,10 +110,33 @@ def submit():
                                                  toolkit.config.get('ckan.site_title')),
             'subject': build_subject(),
             'body': '\n'.join(body_parts),
+
+            'body_html': render_template(
+                'emails/contact.html',
+                name = data_dict['name'],
+                email = data_dict['email'],
+                # pre-escape message so that we can add </br> tags safely in the Jinja2 template
+                message = escape( data_dict['content'] ),
+                timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z'),
+                APP_NAME = "Texas Water Data Hub", 
+                APP_URL= toolkit.url_for( 'home', _external=True ),
+                TITLE = build_subject()
+            ),
+
             'headers': {
-                'reply-to': data_dict['email']
+                'reply-to': data_dict['email'],
+                'cc': 'ben@shoalcrest.net'
             }
         }
+
+        if( data_dict["contact-dest"] != 'data-hub-support' and 'pkg-id' in data_dict and data_dict["pkg-id"] != '' ):
+            pkg = toolkit.get_action('package_show')(None, {'id': data_dict["pkg-id"] } )
+            if( pkg["author_email"] ):
+                mail_dict['recipient_email'] = pkg["author_email"];
+            
+            if( pkg["author"] ):
+                mail_dict['recipient_name'] = pkg["author"];
+
 
         # allow other plugins to modify the mail_dict
         for plugin in PluginImplementations(IContact):

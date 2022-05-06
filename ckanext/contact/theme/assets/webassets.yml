@@ -8,3 +8,4 @@ main:
     - scripts/recaptcha_helpers.js
     - modules/modal-contact.js
     - modules/form-contact.js
+    - modules/ajax-form-contact.js
