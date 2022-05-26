@@ -58,6 +58,7 @@ window.contacts_recaptcha = window.contacts_recaptcha || (function() {
                 });
                 // and resolve the token we've returned to the caller, with the token
                 recaptchaPromise.then(tokenPromise.resolve);
+            }).catch(  function( error ){
             });
             return tokenPromise;
         };

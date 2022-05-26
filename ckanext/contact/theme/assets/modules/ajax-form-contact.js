@@ -50,6 +50,8 @@ ckan.module('ajax-form-contact', function($, _) {
                 // validate the form and submit the AJAX request
                 twdh_ajax_contact_submit();
                 
+            }).catch( function( error ) {
+                console.log( 'Problem with addToken' );
             });
 
             return false;
