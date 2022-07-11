@@ -26,7 +26,12 @@ ckan.module('ajax-form-contact', function($, _) {
                 // add a callback on the form's submission if the context is created, if it isn't we
                 // don't need to hijack the submit functionality on the form and can just let it go
                 // through as normal
-                self.el.on('submit', self.onSubmit);
+
+                // This doesn't work - causes second form submission to bypass ajax and submit form normally if first attempt returned an error
+                // self.el.on('submit', self.onSubmit);
+
+                // ... so we use this instead
+                $( '#contact-submit' ).on('click', self.onSubmit);
             }
         },
 
@@ -36,6 +41,7 @@ ckan.module('ajax-form-contact', function($, _) {
          */
         onSubmit: function(event) {
             
+            console.log( 'contact-form onSubmit' );
             // stop the form going through
             event.preventDefault();
 
@@ -49,9 +55,11 @@ ckan.module('ajax-form-contact', function($, _) {
 
                 // validate the form and submit the AJAX request
                 twdh_ajax_contact_submit();
+                // console.log( 'submit form' );
                 
             }).catch( function( error ) {
-                console.log( 'Problem with addToken' );
+                console.log( 'Problem with onSubmit addToken' );
+                console.log( error );
             });
 
             return false;
