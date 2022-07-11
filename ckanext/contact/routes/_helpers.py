@@ -48,13 +48,13 @@ def validate(data_dict):
             # check the recaptcha value, this only does anything if recaptcha is setup
             recaptcha.check_recaptcha(data_dict.get('g-recaptcha-response', None), expected_action)
         except recaptcha.RecaptchaError as e:
-            log.info(f'Recaptcha failed due to "{e}"')
+            log.info(f'Recaptcha failed due to "{e}" : {expected_action}')
             recaptcha_error = toolkit._('Recaptcha check failed, please try again.')
 
     return errors, error_summary, recaptcha_error
 
 
-def build_subject(subject_default='Contact/Question from visitor', timestamp_default=False):
+def build_subject(form_variant='contact', subject_default='Contact/Question from visitor', timestamp_default=False):
     '''
     Creates the subject line for the contact email using the config or the defaults.
 
@@ -62,7 +62,7 @@ def build_subject(subject_default='Contact/Question from visitor', timestamp_def
     :param timestamp_default: the default bool to use if add_timestamp_to_subject isn't specified
     :return: the subject line
     '''
-    subject = toolkit.config.get('ckanext.contact.subject', toolkit._(subject_default))
+    subject = toolkit.config.get(f'ckanext.{form_variant}.subject', toolkit._(subject_default))
     if asbool(toolkit.config.get('ckanext.contact.add_timestamp_to_subject', timestamp_default)):
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')
         subject = f'{subject} [{timestamp}]'
@@ -89,43 +89,56 @@ def submit():
 
     # if there are not errors and no recaptcha error, attempt to send the email
     if len(errors) == 0 and recaptcha_error is None:
-        body_parts = [
-            # f'{data_dict}\n',
-            f'{data_dict["content"]}\n',
-            # 'Destination:',
-            # f'  {data_dict["contact-dest"]}\n',
-            # 'Routing:',
-            # f'  {data_dict["contact-type"]}\n',
-            'Sent by:',
-            f'  Name: {data_dict["name"]}',
-            f'  Email: {data_dict["email"]}\n'
-        ]
 
+        # set default form variant if not set
+        if( data_dict['form_variant'] == '' ):
+            data_dict['form_variant'] = 'contact'
 
+        body_parts = [ f'{data_dict["content"]}\n' ];
+
+        body_parts.append( 'Sent by:' )
+        body_parts.append( f'  Name: {data_dict["name"]}' )
+        body_parts.append( f'  Email: {data_dict["email"]}' )
+
+        if( data_dict["form_variant"] == 'suggest_dataset' ):
+            # add 'suggest dataset' fields to email body
+            body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
+            if( data_dict["maintainer"] and data_dict["maintainer"] != '' ):
+                body_parts.append( f'  Who owns or maintains this resource? {data_dict["maintainer"]}' )
+            if( data_dict["url"] and data_dict["url"] != '' ):
+                body_parts.append( f'  Link: {data_dict["url"]}' )
+        else:
+            # set 'suggest data' fields to empty so render_template won't break for regular contact message
+            data_dict['resource'] = '';
+            data_dict['maintainer'] = '';
+            data_dict['url'] = '';
 
         mail_dict = {
             'recipient_email': toolkit.config.get('ckanext.contact.mail_to',
                                                   toolkit.config.get('email_to')),
             'recipient_name': toolkit.config.get('ckanext.contact.recipient_name',
                                                  toolkit.config.get('ckan.site_title')),
-            'subject': build_subject(),
+            'subject': build_subject( data_dict["form_variant"] ),
             'body': '\n'.join(body_parts),
 
             'body_html': render_template(
-                'emails/contact.html',
+                f'emails/{data_dict["form_variant"]}.html',
                 name = data_dict['name'],
                 email = data_dict['email'],
+                resource = data_dict['resource'],
+                maintainer = data_dict['maintainer'],
+                url = data_dict['url'],
                 # pre-escape message so that we can add </br> tags safely in the Jinja2 template
                 message = escape( data_dict['content'] ),
                 timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z'),
-                APP_NAME = "Texas Water Data Hub", 
-                APP_URL= toolkit.url_for( 'home', _external=True ),
-                TITLE = build_subject()
+                site_title = toolkit.config.get('ckan.site_title'), 
+                site_url = toolkit.url_for( 'home.index', _external=True ),
+                subject = build_subject( data_dict["form_variant"] )
             ),
 
+            # set reply-to to send to person submitting the form
             'headers': {
-                'reply-to': data_dict['email'],
-                'cc': 'ben@shoalcrest.net'
+                'reply-to': data_dict['email']
             }
         }
 
