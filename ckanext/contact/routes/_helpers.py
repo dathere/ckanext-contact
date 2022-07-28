@@ -102,7 +102,8 @@ def submit():
 
         if( data_dict["form_variant"] == 'suggest_dataset' ):
             # add 'suggest dataset' fields to email body
-            body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
+            if( data_dict["resource"] and data_dict["resource"] != '' ):
+                body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
             if( data_dict["maintainer"] and data_dict["maintainer"] != '' ):
                 body_parts.append( f'  Who owns or maintains this resource? {data_dict["maintainer"]}' )
             if( data_dict["url"] and data_dict["url"] != '' ):
