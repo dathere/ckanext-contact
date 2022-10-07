@@ -138,18 +138,16 @@ def submit():
             ),
 
             # set reply-to to send to person submitting the form
-            'headers': {
-                'reply-to': data_dict['email']
+            "headers": {
+                "Reply-to": data_dict["email"]
             }
         }
 
-        if( data_dict["contact-dest"] != 'data-hub-support' and 'pkg-id' in data_dict and data_dict["pkg-id"] != '' ):
+
+        if( data_dict["contact-dest"] != "data-hub-support" and "pkg-id" in data_dict and data_dict["pkg-id"] != '' ):
             pkg = toolkit.get_action('package_show')(None, {'id': data_dict["pkg-id"] } )
-            if( pkg["author_email"] ):
-                mail_dict['recipient_email'] = pkg["author_email"];
-            
-            if( pkg["author"] ):
-                mail_dict['recipient_name'] = pkg["author"];
+            mail_dict["headers"]["Cc"] =  mail_dict["recipient_email"] 
+            if( pkg["data_contact_email"] ): mail_dict["recipient_email"] = pkg["data_contact_email"]
 
 
         # allow other plugins to modify the mail_dict
