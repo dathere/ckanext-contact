@@ -112,8 +112,8 @@ def submit():
             # set 'suggest data' fields to empty so render_template won't break for regular contact message
             data_dict['resource'] = '';
             data_dict['maintainer'] = '';
-            if( data_dict["url"] and data_dict["url"] != '' ):
-                body_parts.append( f'  Dataset URL: {data_dict["url"]}' )
+            if( data_dict["pkg-url"] and data_dict["pkg-url"] != '' ):
+                body_parts.append( f'  Dataset URL: {data_dict["pkg-url"]}' )
 
         mail_dict = {
             'recipient_email': toolkit.config.get('ckanext.contact.mail_to',
