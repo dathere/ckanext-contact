@@ -112,6 +112,8 @@ def submit():
             # set 'suggest data' fields to empty so render_template won't break for regular contact message
             data_dict['resource'] = '';
             data_dict['maintainer'] = '';
+            data_dict['url'] = '';
+            # Add the dataset URL if there is one
             if( data_dict["pkg-url"] and data_dict["pkg-url"] != '' ):
                 body_parts.append( f'  Dataset URL: {data_dict["pkg-url"]}' )
 
