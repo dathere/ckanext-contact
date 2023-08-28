@@ -84,6 +84,9 @@ def submit():
         unflatten(logic.tuplize_dict(logic.parse_params(toolkit.request.values)))
     )
 
+    log.info( toolkit.request.values )
+    log.info( data_dict )
+
     # validate the request params
     errors, error_summary, recaptcha_error = validate(data_dict)
 
