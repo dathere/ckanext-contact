@@ -84,9 +84,6 @@ def submit():
         unflatten(logic.tuplize_dict(logic.parse_params(toolkit.request.values)))
     )
 
-    log.info( toolkit.request.values )
-    log.info( data_dict )
-
     # validate the request params
     errors, error_summary, recaptcha_error = validate(data_dict)
 
@@ -102,6 +99,11 @@ def submit():
         body_parts.append( 'Sent by:' )
         body_parts.append( f'  Name: {data_dict["name"]}' )
         body_parts.append( f'  Email: {data_dict["email"]}' )
+        # Add the dataset URL if there is one
+        if( data_dict["pkg-url"] and data_dict["pkg-url"] != '' ):
+            body_parts.append( f'  Dataset URL: {data_dict["pkg-url"]}' )
+        else:
+            data_dict["pkg-url"] = ''
 
         if( data_dict["form_variant"] == 'suggest_dataset' ):
             # add 'suggest dataset' fields to email body
@@ -116,9 +118,6 @@ def submit():
             data_dict['resource'] = '';
             data_dict['maintainer'] = '';
             data_dict['url'] = '';
-            # Add the dataset URL if there is one
-            if( data_dict["pkg-url"] and data_dict["pkg-url"] != '' ):
-                body_parts.append( f'  Dataset URL: {data_dict["pkg-url"]}' )
 
         mail_dict = {
             'recipient_email': toolkit.config.get('ckanext.contact.mail_to',
@@ -135,6 +134,7 @@ def submit():
                 resource = data_dict['resource'],
                 maintainer = data_dict['maintainer'],
                 url = data_dict['url'],
+                pkg_url = data_dict['pkg-url'],
                 # pre-escape message so that we can add </br> tags safely in the Jinja2 template
                 message = escape( data_dict['content'] ),
                 timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z'),
