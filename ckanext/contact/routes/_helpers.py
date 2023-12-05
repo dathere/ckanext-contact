@@ -112,12 +112,22 @@ def submit():
 
         if( data_dict["form_variant"] == 'suggest_dataset' ):
             # add 'suggest dataset' fields to email body
-            if( data_dict["resource"] and data_dict["resource"] != '' ):
-                body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
-            if( data_dict["maintainer"] and data_dict["maintainer"] != '' ):
-                body_parts.append( f'  Who owns or maintains this resource? {data_dict["maintainer"]}' )
-            if( data_dict["url"] and data_dict["url"] != '' ):
-                body_parts.append( f'  Link: {data_dict["url"]}' )
+            if( "resource" not in data_dict or data_dict["resource"] == "" ):
+                data_dict["resource"] = "N/A"
+            if( "maintainer" not in data_dict or data_dict["maintainer"] == "" ):
+                data_dict["maintainer"] = "N/A"
+            if( "url" not in data_dict or data_dict["url"] == "" ):
+                data_dict["url"] = "N/A"
+            if( data_dict["contact_type"] == 'Both' ):
+                # set this for readability in email, otherwise 'Both' is out of context
+                data_dict["contact_type"] = "Data and Application"
+
+            body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
+            body_parts.append( f'  Who owns or maintains this resource? {data_dict["maintainer"]}' )
+            body_parts.append( f'  Link: {data_dict["url"]}' )
+
+
+
         else:
             # set 'suggest data' fields to empty so render_template won't break for regular contact message
             data_dict['resource'] = '';
