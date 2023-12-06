@@ -54,7 +54,7 @@ def validate(data_dict):
     return errors, error_summary, recaptcha_error
 
 
-def build_subject(form_variant='contact', subject_default='Contact/Question from visitor', timestamp_default=False):
+def build_subject(form_variant='contact', contact_type='Question', subject_default='Contact from visitor', timestamp_default=False):
     '''
     Creates the subject line for the contact email using the config or the defaults.
 
@@ -63,6 +63,8 @@ def build_subject(form_variant='contact', subject_default='Contact/Question from
     :return: the subject line
     '''
     subject = toolkit.config.get(f'ckanext.{form_variant}.subject', toolkit._(subject_default))
+    if( form_variant == 'contact' ):
+        subject = '{} : {}'.format( subject, contact_type )
     if asbool(toolkit.config.get('ckanext.contact.add_timestamp_to_subject', timestamp_default)):
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')
         subject = f'{subject} [{timestamp}]'
@@ -95,24 +97,37 @@ def submit():
             data_dict['form_variant'] = 'contact'
 
         body_parts = [ f'{data_dict["content"]}\n' ];
-
         body_parts.append( 'Sent by:' )
         body_parts.append( f'  Name: {data_dict["name"]}' )
         body_parts.append( f'  Email: {data_dict["email"]}' )
         # Add the dataset URL if there is one
-        if( data_dict["pkg-url"] and data_dict["pkg-url"] != '' ):
+        if( "pkg-url" in data_dict and data_dict["pkg-url"] != "" ):
             body_parts.append( f'  Dataset URL: {data_dict["pkg-url"]}' )
         else:
-            data_dict["pkg-url"] = ''
+            data_dict["pkg-url"] = ""
+        
+        if( "contact_type" not in data_dict or data_dict["contact_type"] == "" ):
+            data_dict["contact_type"] = "Question"
+            body_parts.append( f'  Contact Type: {data_dict["contact_type"]}' )
 
         if( data_dict["form_variant"] == 'suggest_dataset' ):
             # add 'suggest dataset' fields to email body
-            if( data_dict["resource"] and data_dict["resource"] != '' ):
-                body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
-            if( data_dict["maintainer"] and data_dict["maintainer"] != '' ):
-                body_parts.append( f'  Who owns or maintains this resource? {data_dict["maintainer"]}' )
-            if( data_dict["url"] and data_dict["url"] != '' ):
-                body_parts.append( f'  Link: {data_dict["url"]}' )
+            if( "resource" not in data_dict or data_dict["resource"] == "" ):
+                data_dict["resource"] = "N/A"
+            if( "maintainer" not in data_dict or data_dict["maintainer"] == "" ):
+                data_dict["maintainer"] = "N/A"
+            if( "url" not in data_dict or data_dict["url"] == "" ):
+                data_dict["url"] = "N/A"
+            if( data_dict["contact_type"] == 'Both' ):
+                # set this for readability in email, otherwise 'Both' is out of context
+                data_dict["contact_type"] = "Data and Application"
+
+            body_parts.append( f'  Title of Resource: {data_dict["resource"]}' )
+            body_parts.append( f'  Who owns or maintains this resource? {data_dict["maintainer"]}' )
+            body_parts.append( f'  Link: {data_dict["url"]}' )
+
+
+
         else:
             # set 'suggest data' fields to empty so render_template won't break for regular contact message
             data_dict['resource'] = '';
@@ -124,13 +139,14 @@ def submit():
                                                   toolkit.config.get('email_to')),
             'recipient_name': toolkit.config.get('ckanext.contact.recipient_name',
                                                  toolkit.config.get('ckan.site_title')),
-            'subject': build_subject( data_dict["form_variant"] ),
+            'subject': build_subject( data_dict["form_variant"], data_dict['contact_type'] ),
             'body': '\n'.join(body_parts),
 
             'body_html': render_template(
                 f'emails/{data_dict["form_variant"]}.html',
                 name = data_dict['name'],
                 email = data_dict['email'],
+                contact_type = data_dict['contact_type'],
                 resource = data_dict['resource'],
                 maintainer = data_dict['maintainer'],
                 url = data_dict['url'],
@@ -140,7 +156,7 @@ def submit():
                 timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z'),
                 site_title = toolkit.config.get('ckan.site_title'), 
                 site_url = toolkit.url_for( 'home.index', _external=True ),
-                subject = build_subject( data_dict["form_variant"] )
+                subject = build_subject( data_dict["form_variant"], data_dict['contact_type'] )
             ),
 
             # set reply-to to send to person submitting the form
@@ -148,17 +164,17 @@ def submit():
                 "Reply-to": data_dict["email"]
             }
         }
+        
+        if( "contact_dest" not in data_dict ):
+            data_dict["contact_dest"] = "data-hub-support"
 
-
-        if( data_dict["contact-dest"] != "data-hub-support" and "pkg-id" in data_dict and data_dict["pkg-id"] != '' ):
+        if( data_dict["contact_dest"] != "data-hub-support" and "pkg-id" in data_dict and data_dict["pkg-id"] != '' ):
             pkg = toolkit.get_action('package_show')(None, {'id': data_dict["pkg-id"] } )
             if( pkg["data_contact_email"] ): 
                 # 'cc' needs to be in the mail header, and passed in as a parameter to mail_recipient both due to the way smtlib.sendmail works
                 mail_dict["headers"]["cc"] =  mail_dict["recipient_email"] 
                 mail_dict["cc"] =  [mail_dict["recipient_email"]]
-                
                 mail_dict["recipient_email"] = pkg["data_contact_email"]
-
 
         # allow other plugins to modify the mail_dict
         for plugin in PluginImplementations(IContact):
