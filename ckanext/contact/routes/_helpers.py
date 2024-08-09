@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from flask import render_template
 
-from jinja2 import escape
+from markupsafe import escape
 
 
 log = logging.getLogger(__name__)
