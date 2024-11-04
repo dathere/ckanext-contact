@@ -171,9 +171,7 @@ def submit():
         if( data_dict["contact_dest"] != "data-hub-support" and "pkg-id" in data_dict and data_dict["pkg-id"] != '' ):
             pkg = toolkit.get_action('package_show')(None, {'id': data_dict["pkg-id"] } )
             if( pkg["data_contact_email"] ): 
-                # 'cc' needs to be in the mail header, and passed in as a parameter to mail_recipient both due to the way smtlib.sendmail works
                 mail_dict["headers"]["cc"] =  mail_dict["recipient_email"] 
-                mail_dict["cc"] =  [mail_dict["recipient_email"]]
                 mail_dict["recipient_email"] = pkg["data_contact_email"]
 
         # allow other plugins to modify the mail_dict
