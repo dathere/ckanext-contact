@@ -16,3 +16,4 @@ Thumbs.db
 .coverage
 .pytest_cache
 .vscode
+build/
